@@ -29,44 +29,50 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// Webhook to receive messages
+// Webhook to receive messages 
 app.post('/webhook', async (req, res) => {
-    console.log('Incoming message received: ', req.body);
+    // Log the full incoming message body for debugging
+    console.log('Incoming message received: ', JSON.stringify(req.body, null, 2));
 
     const incomingMessage = req.body;
 
     if (incomingMessage.entry) {
-        const messageContent = incomingMessage.entry[0].changes[0].value.messages[0];
-        const fromNumber = messageContent.from;
-        const messageText = messageContent.text.body;
-
-        let responseText = '';
-        if (messageText === '1') {
-            responseText = 'Hello World';
-        } else if (messageText === '2') {
-            responseText = 'Hello User';
-        } else {
-            responseText = 'Hello Customer, user-initiated service';
-        }
-
         try {
-            await axios({
-                url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
-                method: 'post',
-                headers: {
-                    'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                data: {
-                    messaging_product: 'whatsapp',
-                    to: fromNumber,
-                    text: { body: responseText }
-                }
-            });
+            const changes = incomingMessage.entry[0].changes;
+            if (changes && changes.length > 0 && changes[0].value && changes[0].value.messages) {
+                const messageContent = changes[0].value.messages[0];
+                const fromNumber = messageContent.from;
+                const messageText = messageContent.text.body;
 
-            console.log('Response sent successfully!');
+                let responseText = '';
+                if (messageText === '1') {
+                    responseText = 'Hello World';
+                } else if (messageText === '2') {
+                    responseText = 'Hello User';
+                } else {
+                    responseText = 'Hello Customer, user-initiated service';
+                }
+
+                await axios({
+                    url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
+                    method: 'post',
+                    headers: {
+                        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        messaging_product: 'whatsapp',
+                        to: fromNumber,
+                        text: { body: responseText }
+                    }
+                });
+
+                console.log('Response sent successfully!');
+            } else {
+                console.log('No messages found in the incoming payload.');
+            }
         } catch (error) {
-            console.error('Error sending response:', error.response ? error.response.data : error.message);
+            console.error('Error processing incoming message:', error.message);
         }
     } else {
         console.log('No entry found in incoming message.');
@@ -74,6 +80,7 @@ app.post('/webhook', async (req, res) => {
 
     res.sendStatus(200);
 });
+
 
 // Start server
 app.listen(3000, () => console.log('Server is running on port 3000.'));
