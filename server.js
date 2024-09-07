@@ -2,9 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
-// Configuration values
-const WHATSAPP_NUMBER_ID = '429325400258083';  // Your WhatsApp Number ID
-const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBOwlPES7KKAFU35pgOhMt20r7eIQ4O3SctgykzfH7rrH3WTMGUlT1egIj8TAjieRZAgXlBrTJMFxLZBGCwIIB4XvW7DHT6YZASpUblgo1TVZAJkyVCQOHxVKlPKVXxGoEnTZA38VsKe9WhM46acUnRpRZCcZAhpw2rUSKEZCAm4fQZC8L8yib7TYuLSwbD00FY9C9WkwphUUpUwVo0ysQZD';  // Your WhatsApp API Token
+// Updated Configuration values
+const WHATSAPP_NUMBER_ID = '429325400258083';  // Replace with your WhatsApp Phone ID
+const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBOxpusjGf99oVaGQVqwJze2o5mvq05PourfTWH6v2L4QVOulniFDgqRzFOyrzfgZA8IxmX7q6zdjj6HZAN4ZAFgo6h9dnKsV9UaGmLlnKj4GH3xJkyZB1nT4NoSFCPmlCEZB5KwILP7nud5KoIWLQMaQyhkL0mQZBzLtm5x4GriDm1WOPDB4jomDKZCR8uaLCGZC9ZCagr1bABqZAQ1Iys5JioIcT4P';  // Replace with your new WhatsApp API Token
 const WHATSAPP_VERIFY_TOKEN = 'my_custom_verify_token';  // Your custom verification token
 
 app.use(express.json());
