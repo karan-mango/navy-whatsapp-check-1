@@ -4,7 +4,7 @@ const app = express();
 
 // Updated Configuration values
 const WHATSAPP_NUMBER_ID = '429325400258083';  // Replace with your WhatsApp Phone ID
-const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBOxpusjGf99oVaGQVqwJze2o5mvq05PourfTWH6v2L4QVOulniFDgqRzFOyrzfgZA8IxmX7q6zdjj6HZAN4ZAFgo6h9dnKsV9UaGmLlnKj4GH3xJkyZB1nT4NoSFCPmlCEZB5KwILP7nud5KoIWLQMaQyhkL0mQZBzLtm5x4GriDm1WOPDB4jomDKZCR8uaLCGZC9ZCagr1bABqZAQ1Iys5JioIcT4P';  // Replace with your new WhatsApp API Token
+const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBO3j0j9AiqeHqRIEGxj2TilZB30Tg2JWHPN4pgWlOvmECqnsRDscesvcZArrb7200oEflxs5dPrSUu2cPONGRvRl3c9ZCdnJ7ZBKoVCcL90FU4IoucT1QHeeIuacSCYPvbHxMCD9PMsrbzeIGShUtPvZBlqUvgRBunNc18YHEpYWvovELCutmgWoZAW0cylD1PtZBEKtvsvBhCe3Jy7dci0cZCsQZD';  // Replace with your new WhatsApp API Token
 const WHATSAPP_VERIFY_TOKEN = 'my_custom_verify_token';  // Your custom verification token
 
 app.use(express.json());
