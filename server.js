@@ -23,6 +23,11 @@ async function checkUser(phoneNumber) {
         const db = client.db(DATABASE_NAME);
         const collection = db.collection(COLLECTION_NAME);
 
+        // Print all users for debugging
+        const users = await collection.find({}).toArray();
+        console.log('Users in database:', users);
+
+        // Check if the specific user exists
         const user = await collection.findOne({ phoneNumber: phoneNumber });
         return user;
     } catch (error) {
@@ -50,65 +55,68 @@ app.get('/webhook', (req, res) => {
 
 // Endpoint to handle incoming messages
 app.post('/webhook', async (req, res) => {
-    console.log('Incoming payload:', JSON.stringify(req.body, null, 2));
+    console.log('Incoming message:', JSON.stringify(req.body, null, 2));
     const incomingMessage = req.body;
 
     if (incomingMessage.entry) {
         const changes = incomingMessage.entry[0].changes;
-        if (changes && changes.length > 0 && changes[0].value) {
-            const value = changes[0].value;
-            if (value.messages && value.messages.length > 0) {
-                const messageContent = value.messages[0];
-                const fromNumber = messageContent.from;
-                const messageText = messageContent.text.body;
+        if (changes && changes.length > 0 && changes[0].value && changes[0].value.messages) {
+            const messageContent = changes[0].value.messages[0];
+            const fromNumber = messageContent.from;
+            const messageText = messageContent.text.body;
 
-                console.log(`Received message from: ${fromNumber}`);
+            console.log(`Received message from: ${fromNumber}`);
 
-                // Check if user exists in MongoDB
-                const user = await checkUser(fromNumber);
+            // Check if user exists in MongoDB
+            const user = await checkUser(fromNumber);
 
-                console.log(`Checked user in database: ${fromNumber}`);
-                let responseText = '';
-                if (user) {
-                    if (messageText.toLowerCase() === 'hello') {
-                        responseText = `Hello, ${user.name}! Welcome to the theater booking service.`;
-                    } else {
-                        responseText = 'Sorry, please start by saying "hello".';
-                    }
+            console.log(`Checked user in database: ${fromNumber}`);
+            let responseText = '';
+            if (user) {
+                if (messageText.toLowerCase() === 'hello') {
+                    responseText = `Hello, ${user.name}! Welcome to the theater booking service.`;
                 } else {
-                    responseText = 'Sorry, your number is not authenticated to use this service.';
+                    responseText = 'Sorry, please start by saying "hello".';
                 }
-
-                // Send response to WhatsApp
-                try {
-                    await axios({
-                        url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
-                        method: 'post',
-                        headers: {
-                            'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        },
-                        data: {
-                            messaging_product: 'whatsapp',
-                            to: fromNumber,
-                            text: { body: responseText }
-                        }
-                    });
-
-                    console.log('Response sent successfully!');
-                } catch (error) {
-                    console.error('Error sending response to WhatsApp:', error);
-                }
-            } else if (value.statuses && value.statuses.length > 0) {
-                console.log('Received message status update:', value.statuses[0]);
             } else {
-                console.log('No messages or statuses found in the incoming payload.');
+                responseText = 'Sorry, your number is not authenticated to use this service. gg';
+                // Send all users' info to the unauthorized user
+                await axios({
+                    url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
+                    method: 'post',
+                    headers: {
+                        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        messaging_product: 'whatsapp',
+                        to: fromNumber,
+                        text: { body: `Your number is not authenticated. Here are the users in the database:\n${JSON.stringify(user, null, 2)}` }
+                    }
+                });
             }
+
+            // Send response to WhatsApp
+            await axios({
+                url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
+                method: 'post',
+                headers: {
+                    'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    messaging_product: 'whatsapp',
+                    to: fromNumber,
+                    text: { body: responseText }
+                }
+            });
+
+            console.log('Response sent successfully!');
         } else {
-            console.log('No changes found in incoming payload.');
+            console.log('No messages found in the incoming payload.');
         }
     } else {
-        console.log('No entry found in incoming payload.');
+        console.log('No entry found in incoming message.');
     }
 
     res.sendStatus(200);
