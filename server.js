@@ -74,7 +74,7 @@ app.post('/webhook', async (req, res) => {
                     responseText = 'Sorry, please start by saying "hello".';
                 }
             } else {
-                responseText = 'Sorry, your number is not authenticated to use this service.';
+                responseText = 'Sorry, your number .';
             }
 
             // Send response to WhatsApp
