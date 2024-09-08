@@ -60,9 +60,12 @@ app.post('/webhook', async (req, res) => {
             const fromNumber = messageContent.from;
             const messageText = messageContent.text.body;
 
+            console.log(`Received message from: ${fromNumber}`);
+
             // Check if user exists in MongoDB
             const user = await checkUser(fromNumber);
 
+            console.log(`Checked user in database: ${fromNumber}`);
             let responseText = '';
             if (user) {
                 if (messageText.toLowerCase() === 'hello') {
@@ -90,6 +93,9 @@ app.post('/webhook', async (req, res) => {
             });
 
             console.log('Response sent successfully!');
+
+            // Delay before processing the next request
+            await new Promise(resolve => setTimeout(resolve, 30000));
         } else {
             console.log('No messages found in the incoming payload.');
         }
