@@ -1,18 +1,37 @@
 const express = require('express');
 const axios = require('axios');
+const { MongoClient } = require('mongodb');
+
 const app = express();
-
-// Updated Configuration values
-const WHATSAPP_NUMBER_ID = '429325400258083';  // Replace with your WhatsApp Phone ID
-const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBO3j0j9AiqeHqRIEGxj2TilZB30Tg2JWHPN4pgWlOvmECqnsRDscesvcZArrb7200oEflxs5dPrSUu2cPONGRvRl3c9ZCdnJ7ZBKoVCcL90FU4IoucT1QHeeIuacSCYPvbHxMCD9PMsrbzeIGShUtPvZBlqUvgRBunNc18YHEpYWvovELCutmgWoZAW0cylD1PtZBEKtvsvBhCe3Jy7dci0cZCsQZD';  // Replace with your new WhatsApp API Token
-const WHATSAPP_VERIFY_TOKEN = 'my_custom_verify_token';  // Your custom verification token
-
 app.use(express.json());
 
-// Root endpoint to display a simple message
-app.get('/', (req, res) => {
-    res.send('Server is running and ready to receive messages!');
-});
+// MongoDB configuration
+const MONGO_URI = 'mongodb+srv://karancsengg1:Sanjaybhai%40123@cluster0.iozlj.mongodb.net/theaterBooking?retryWrites=true&w=majority';
+const DATABASE_NAME = 'theaterBooking';
+const COLLECTION_NAME = 'users';
+
+// WhatsApp API configuration
+const WHATSAPP_NUMBER_ID = '429325400258083';  // Replace with your WhatsApp Phone ID
+const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBO8CwHnWQw1ALEDmET0JHymLLuiu7RDbUNKVGrv3lDraPwgDtGk7DZAde1p1mOdFGHRFws2JCEemxSSuaruP6qLjSZAwyvyZC9P5R4Ysb82T67dYBeAFdBtNzjkRJ12cfilZCdIqVDp9zQjNgwezDIayFZBPqA0F4mE43ZAVl2PEpZA2YnZBDUh5ZByhrMEP6GuQ1H7tnZBIM0f9pYks24VJuxbRdCm';  // Replace with your WhatsApp API Token
+const WHATSAPP_VERIFY_TOKEN = 'my_custom_verify_token'; // Replace with your custom verification token
+
+// Helper function to check user in MongoDB
+async function checkUser(phoneNumber) {
+    const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
+    try {
+        await client.connect();
+        const db = client.db(DATABASE_NAME);
+        const collection = db.collection(COLLECTION_NAME);
+
+        const user = await collection.findOne({ phoneNumber: phoneNumber });
+        return user;
+    } catch (error) {
+        console.error('Error checking user in MongoDB:', error);
+        return null;
+    } finally {
+        await client.close();
+    }
+}
 
 // Webhook verification endpoint
 app.get('/webhook', (req, res) => {
@@ -29,50 +48,50 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// Webhook to receive messages 
+// Endpoint to handle incoming messages
 app.post('/webhook', async (req, res) => {
-    // Log the full incoming message body for debugging
-    console.log('Incoming message received: ', JSON.stringify(req.body, null, 2));
-
+    console.log('Incoming message:', JSON.stringify(req.body, null, 2));
     const incomingMessage = req.body;
 
     if (incomingMessage.entry) {
-        try {
-            const changes = incomingMessage.entry[0].changes;
-            if (changes && changes.length > 0 && changes[0].value && changes[0].value.messages) {
-                const messageContent = changes[0].value.messages[0];
-                const fromNumber = messageContent.from;
-                const messageText = messageContent.text.body;
+        const changes = incomingMessage.entry[0].changes;
+        if (changes && changes.length > 0 && changes[0].value && changes[0].value.messages) {
+            const messageContent = changes[0].value.messages[0];
+            const fromNumber = messageContent.from;
+            const messageText = messageContent.text.body;
 
-                let responseText = '';
-                if (messageText === '1') {
-                    responseText = 'Hello World';
-                } else if (messageText === '2') {
-                    responseText = 'Hello User';
+            // Check if user exists in MongoDB
+            const user = await checkUser(fromNumber);
+
+            let responseText = '';
+            if (user) {
+                if (messageText.toLowerCase() === 'hello') {
+                    responseText = `Hello, ${user.name}! Welcome to the theater booking service.`;
                 } else {
-                    responseText = 'Hello Customer, user-initiated service';
+                    responseText = 'Sorry, please start by saying "hello".';
                 }
-
-                await axios({
-                    url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
-                    method: 'post',
-                    headers: {
-                        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                        messaging_product: 'whatsapp',
-                        to: fromNumber,
-                        text: { body: responseText }
-                    }
-                });
-
-                console.log('Response sent successfully!');
             } else {
-                console.log('No messages found in the incoming payload.');
+                responseText = 'Sorry, your number is not authenticated to use this service.';
             }
-        } catch (error) {
-            console.error('Error processing incoming message:', error.message);
+
+            // Send response to WhatsApp
+            await axios({
+                url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
+                method: 'post',
+                headers: {
+                    'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    messaging_product: 'whatsapp',
+                    to: fromNumber,
+                    text: { body: responseText }
+                }
+            });
+
+            console.log('Response sent successfully!');
+        } else {
+            console.log('No messages found in the incoming payload.');
         }
     } else {
         console.log('No entry found in incoming message.');
@@ -81,6 +100,6 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
-
 // Start server
-app.listen(3000, () => console.log('Server is running on port 3000.'));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
