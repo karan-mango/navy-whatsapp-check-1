@@ -11,8 +11,8 @@ const DATABASE_NAME = 'theaterBooking';
 const COLLECTION_NAME = 'users';
 
 // WhatsApp API configuration
-const WHATSAPP_NUMBER_ID = '429325400258083';  // Replace with your WhatsApp Phone ID
-const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBO2ZCBEZBfkouU6NGLtO0VP0x7gIRL1YeoBQ0qv4ncqLfGLEYqgNY9bsgttzghkdiYehx6ZCQHRL6wqt4uhqYxdoQAcsMHzAuOeSJq41x9S7IPAaXcOwMdZASoGDmtjuFKaI43Bb10vYhBtcUrks8fyvZBGPkwdn4aUUSgSwnHRmohvj9dtZBNebOH9UVKMGmoz9ooK7RrtQrmszcLN3f8LLQIZD';  // Replace with your WhatsApp API Token
+const WHATSAPP_NUMBER_ID = '429325400258083'; // Replace with your WhatsApp Phone ID
+const WHATSAPP_TOKEN = 'EAAGc27WZBMrMBO2ZCBEZBfkouU6NGLtO0VP0x7gIRL1YeoBQ0qv4ncqLfGLEYqgNY9bsgttzghkdiYehx6ZCQHRL6wqt4uhqYxdoQAcsMHzAuOeSJq41x9S7IPAaXcOwMdZASoGDmtjuFKaI43Bb10vYhBtcUrks8fyvZBGPkwdn4aUUSgSwnHRmohvj9dtZBNebOH9UVKMGmoz9ooK7RrtQrmszcLN3f8LLQIZD'; // Replace with your WhatsApp API Token
 const WHATSAPP_VERIFY_TOKEN = 'my_custom_verify_token'; // Replace with your custom verification token
 
 // Helper function to check user in MongoDB
@@ -23,12 +23,13 @@ async function checkUser(phoneNumber) {
         const db = client.db(DATABASE_NAME);
         const collection = db.collection(COLLECTION_NAME);
 
-        // Print all users for debugging
-        const users = await collection.find({}).toArray();
-        console.log('Users in database:', users);
-
         // Check if the specific user exists
         const user = await collection.findOne({ phoneNumber: phoneNumber });
+        if (user) {
+            console.log('User found:', user);
+        } else {
+            console.log('User not found:', phoneNumber);
+        }
         return user;
     } catch (error) {
         console.error('Error checking user in MongoDB:', error);
@@ -69,9 +70,8 @@ app.post('/webhook', async (req, res) => {
 
             // Check if user exists in MongoDB
             const user = await checkUser(fromNumber);
-
-            console.log(`Checked user in database: ${fromNumber}`);
             let responseText = '';
+
             if (user) {
                 if (messageText.toLowerCase() === 'hello') {
                     responseText = `Hello, ${user.name}! Welcome to the theater booking service.`;
@@ -80,8 +80,10 @@ app.post('/webhook', async (req, res) => {
                 }
             } else {
                 responseText = 'Sorry, your number is not authenticated to use this service.';
+            }
 
-                // Send all users' info to the unauthorized user
+            // Send response to WhatsApp
+            try {
                 await axios({
                     url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
                     method: 'post',
@@ -92,27 +94,13 @@ app.post('/webhook', async (req, res) => {
                     data: {
                         messaging_product: 'whatsapp',
                         to: fromNumber,
-                        text: { body: `Your number is not authenticated. Here are the users in the database:\n${JSON.stringify(user, null, 2)}` }
+                        text: { body: responseText }
                     }
                 });
+                console.log('Response sent successfully!');
+            } catch (error) {
+                console.error('Error sending message:', error.response ? error.response.data : error.message);
             }
-
-            // Send response to WhatsApp
-            await axios({
-                url: `https://graph.facebook.com/v20.0/${WHATSAPP_NUMBER_ID}/messages`,
-                method: 'post',
-                headers: {
-                    'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                data: {
-                    messaging_product: 'whatsapp',
-                    to: fromNumber,
-                    text: { body: responseText }
-                }
-            });
-
-            console.log('Response sent successfully!');
         } else {
             console.log('No messages found in the incoming payload.');
         }
