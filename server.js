@@ -22,7 +22,7 @@ async function logAllUsers() {
         console.log('Users in database:', users);
 
     } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
+        console.error('Error connecting to MongoDB: karna', error);
     } finally {
         // Close the MongoDB connection
         await client.close();
